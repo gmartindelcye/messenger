@@ -45,7 +45,7 @@ def client_handler(client):
         username = client.recv(MSG_MAX_LENGHT).decode('utf-8')
         if username != "":
             active_clients.append((username, client))
-            prompt_message = "SERVER~" + f"{username added to the chat}"
+            prompt_message = "SERVER~" + f"{username} added to the chat"
             send_messages_to_all(prompt_message)
             break
         else:
