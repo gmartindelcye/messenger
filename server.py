@@ -47,6 +47,7 @@ def client_handler(client):
             active_clients.append((username, client))
             prompt_message = "SERVER~" + f"{username} added to the chat"
             send_messages_to_all(prompt_message)
+            print(f"{username} join the server")
             break
         else:
             print("Client username is empty!")

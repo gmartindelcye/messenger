@@ -1,11 +1,9 @@
 # Import required modules
-from curses.panel import bottom_panel
-from re import M
 import socket
 import threading
 import tkinter as tk
-from tkinter import scrolledtext
-from turtle import width
+from tkinter import scrolledtext, messagebox
+
 
 DARK_GREY = '#121212'
 MEDIUM_GREY = '#1F1B24'
@@ -20,17 +18,66 @@ PORT = 6543
 MSG_MAX_LENGHT = 2048
 
 
+def add_message(message):
+    message_box.config(state=tk.NORMAL)
+    message_box.insert(tk.END, message + '\n')
+    message_box.config(state=tk.DISABLED)
+
+
+def create_client() -> socket.socket:
+    """
+    Creating socket class object
+    AF_INET = ipv4
+    SOCK_STREAM = tcp 
+
+    Returns socket client
+    """
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    #connect to the server
+    try:
+        client.connect((HOST,PORT))
+        #add_message(f"[SERVER] Connected to server {HOST} port {PORT}")
+        return client
+    except:
+        messagebox.showerror("Error", f"Unable to connect to server {HOST} port {PORT}")
+        exit(1)
+
+client = create_client()
+
 def connect():
-    print("join")
+
+    username = username_textbox.get()
+    
+    if username != "":
+        client.sendall(username.encode())
+        username_textbox.config(state=tk.DISABLED)
+        username_button.config(state=tk.DISABLED)
+    else:
+        messagebox.showerror("Error", "Username cannot be empty!")
+        return
+
+    threading.Thread(target=listen_for_messages_from_server, args=(client, )).start()
 
 
 def send_message():
-    print("send")
+        message = message_textbox.get()
+        if message != "":
+            client.sendall(message.encode())
+            message_textbox.delete(0,len(message))
+
+
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        root.destroy()
+        exit(0)
+
 
 root = tk.Tk()
 root.geometry("600x600")
 root.title("Messenger Client")
 root.resizable(False, False)
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 root.grid_rowconfigure(0, weight=1)
 root.grid_rowconfigure(1, weight=4)
@@ -68,53 +115,15 @@ def listen_for_messages_from_server(client):
         if message != "":
             username = message.split('~')[0]
             content = message.split('~')[1]
-            print(f"[{username}]: {content}")
+            add_message(f"[{username}]: {content}")
         else:
-            print("Message recieved from clients empty")
-
-
-def send_message_to_server(client):
-    while True:
-        message = input("Message: ")
-        if message != "":
-            client.sendall(message.encode())
-        else:
-            print("Empty message! Exiting...")
-            exit(0)
-
-
-def communicate_to_server(client):
-
-    username = input("Enter username: ")
-    if username != "":
-        client.sendall(username.encode())
-    else:
-        print("Username cannot be empty!")
-        exit(0)
-
-    threading.Thread(target=listen_for_messages_from_server, args=(client, )).start()
-
-    send_message_to_server(client)
-
+            messagebox.showerror("Error","Message recieved from clients empty")
+            exit(1)
 
 
 def main():
 
     root.mainloop()
-    
-    # creating socket class object
-    # AF_INET = ipv4
-    # SOCK_STREAM = tcp 
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # connect to the server
-    try:
-        client.connect((HOST,PORT))
-        print(f"Client connected to server {HOST} port {PORT}")
-    except:
-        print(f"Unable to connect to server {HOST} port {PORT}")
-
-    communicate_to_server(client)
 
 
 if __name__ == "__main__":
